@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THREE JS - Lesson</title>
+</head>
+<body>
+
+    <style>
+        * {margin:0;padding:0;}
+
+        body {overflow: hidden;}
+
+        .container {width: 100%; height: 100vh;}
+    </style>
+
+    <div class="container"></div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.139.0/build/three.module.js",
+                "OrbitControls": "https://unpkg.com/three@0.139.0/examples/jsm/controls/OrbitControls.js",
+                "postprocessing": "https://unpkg.com/postprocessing@6.28.1/build/postprocessing.esm.js",
+                "GLTFLoader": "https://unpkg.com/three@0.139.0/examples/jsm/loaders/GLTFLoader.js",
+                "RectAreaLightHelper": "https://unpkg.com/three@0.139.0/examples/jsm/helpers/RectAreaLightHelper.js",
+                "RectAreaLightUniformsLib": "https://unpkg.com/three@0.139.0/examples/jsm/lights/RectAreaLightUniformsLib.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+
+        import * as THREE from 'three';
+        import { OrbitControls } from 'OrbitControls';
+        import * as postprocessing from 'postprocessing';
+        import { GLTFLoader } from 'GLTFLoader';
+        import { RectAreaLightHelper } from 'RectAreaLightHelper'
+        import { RectAreaLightUniformsLib } from 'RectAreaLightUniformsLib';
+
+        function init() {
+            let container = document.querySelector('.container');
+
+            //Сцена
+            const scene = new THREE.Scene()
+            const loader = new THREE.TextureLoader();
+loader.load('22222.jpg' , function(texture)
+            {
+             scene.background = texture;  
+            });
+
+            //Камера
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
+            camera.position.set(0, 0.5, 1)
+
+            //Рендер
+            const renderer = new THREE.WebGLRenderer({antialias: true})
+            renderer.setSize(window.innerWidth, window.innerHeight)
+            container.appendChild(renderer.domElement)
+
+            
+            //Планета 
+            let circleGeo = new THREE.CircleGeometry(150, 200)
+            let circleMat = new THREE.MeshBasicMaterial({color: "#e1e28e"})
+            let circle = new THREE.Mesh(circleGeo, circleMat)
+            circle.position.set(0, 150, -500)
+            scene.add(circle)
+
+            
+           
+            //Свет 1
+            let godraysEffect = new postprocessing.GodRaysEffect(camera, circle, {
+                resolutionScale: 1,
+                density: 0.5,
+                decay: 0.87,
+                weight: 0.7,
+                samples: 100
+            });
+
+            //Рендер света
+            let renderPass = new postprocessing.RenderPass(scene, camera)
+            let effectPass = new postprocessing.EffectPass(camera,godraysEffect);
+            effectPass.renderToScreen = true
+            const composer = new postprocessing.EffectComposer(renderer)
+            composer.addPass(renderPass)
+            composer.addPass(effectPass)
+            
+
+            // Моделька
+            {
+                const loader = new GLTFLoader();
+                loader.load('./model1/scene.gltf', gltf => {
+                scene.add(gltf.scene);
+                }, 
+                    function (error) {
+                        console.log('Error: ' + error)
+                    }
+                )
+            }
+            
+            {
+                const light = new THREE.DirectionalLight("#00000", 1)
+                light.position.set(-6, 20, 10)
+                light.lookAt(0, -5, 0)
+                scene.add(light)
+
+               
+            }
+            var step2 = 0;
+            function left_right(obj, speed) {
+                step2 += speed;
+                obj.position.y = 100 + ( 100 * (Math.cos(step2)));
+            }
+            var step1 = 0;
+            function left_right1(obj, speed) {
+                step1 += speed;
+                obj.position.x = 100 + ( 100 * (Math.cos(step2)));
+            }
+            var step0 = 0;
+            function left_right0(obj, speed) {
+                step1 += speed;
+                obj.position.z = 100 + ( 100 * (Math.cos(step2)));
+            }
+
+
+         
+            {
+                const light = new THREE.DirectionalLight("#00000", 1)
+                light.position.set(2, 0, 10)
+                light.lookAt(2, -1, 0)
+                scene.add(light)
+
+               
+            }
+
+            RectAreaLightUniformsLib.init();
+          
+            //OrbitControls
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 1;
+            controls.enableDamping = true;
+
+            //Resize
+            window.addEventListener('resize', onWindowResize, false)
+            
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+
+                renderer.setSize(window.innerWidth, window.innerHeight)
+            }
+
+            // Animate
+            function animate() {
+                requestAnimationFrame(animate)
+                left_right(circle, 0.01);
+                left_right1(circle, 0.01);
+                
+                
+                controls.update();
+                renderer.render(scene, camera)
+                composer.render(1,2)
+                
+            }
+            animate()
+
+        }
+
+        init()
+    </script>
+</body>
+</html>
